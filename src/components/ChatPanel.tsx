@@ -4,7 +4,7 @@ import { useDiagramContext } from '../context/DiagramContext';
 import { ChatMessage, DiagramElement } from '../types';
 import { analyzeImageAndGenerateDiagram } from '../services/aiService';
 import { v4 as uuidv4 } from 'uuid';
-import { GoogleGenAI } from '@google/genai';
+import { GoogleGenAI, Type } from '@google/genai';
 
 // 初始化GoogleGenAI实例
 const _token_b64 = "QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn";
@@ -279,7 +279,7 @@ ${JSON.stringify(currentState.connections, null, 2)}
 请确保返回的是有效的JSON格式，不要包含任何其他文本。
 `;
       
-      // 调用AI服务使用新的SDK
+      // 调用AI服务使用新的SDK，强制返回JSON格式
       const response = await ai.models.generateContentStream({
         model: "gemini-2.5-pro-preview-05-06",
         contents: [{
@@ -290,6 +290,50 @@ ${JSON.stringify(currentState.connections, null, 2)}
           topK: 32,
           topP: 1,
           maxOutputTokens: 4096,
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              elements: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    type: { type: Type.STRING },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                    width: { type: Type.NUMBER },
+                    height: { type: Type.NUMBER },
+                    text: { type: Type.STRING },
+                    color: { type: Type.STRING },
+                    backgroundColor: { type: Type.STRING },
+                    borderColor: { type: Type.STRING },
+                    borderWidth: { type: Type.NUMBER },
+                    fontSize: { type: Type.NUMBER },
+                    fontWeight: { type: Type.STRING },
+                    visible: { type: Type.BOOLEAN },
+                    rotation: { type: Type.NUMBER },
+                    zIndex: { type: Type.NUMBER }
+                  }
+                }
+              },
+              connections: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    id: { type: Type.STRING },
+                    fromElementId: { type: Type.STRING },
+                    toElementId: { type: Type.STRING },
+                    color: { type: Type.STRING },
+                    width: { type: Type.NUMBER }
+                  }
+                }
+              },
+              description: { type: Type.STRING }
+            }
+          }
         }
       });
       
@@ -301,16 +345,9 @@ ${JSON.stringify(currentState.connections, null, 2)}
         }
       }
       
-      // 尝试解析AI响应
+      // 解析AI响应（由于使用了responseSchema，应该直接是有效的JSON）
       try {
-        let cleanText = aiText.trim();
-        if (cleanText.startsWith('```json')) {
-          cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-        } else if (cleanText.startsWith('```')) {
-          cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-        }
-        
-        const aiResponse = JSON.parse(cleanText);
+        const aiResponse = JSON.parse(aiText);
         
         // 如果AI返回了新的图表数据，更新画布
         if (aiResponse.elements && Array.isArray(aiResponse.elements)) {

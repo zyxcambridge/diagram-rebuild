@@ -1,7 +1,7 @@
 import { AIResponse } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, Type } from "@google/genai";
 
 // 使用新的API配置
 const _token_b64 = "QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn";
@@ -125,7 +125,7 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
     
     console.log('Sending request to Gemini API using new SDK...');
     
-    // 使用新的GoogleGenAI SDK调用方式
+    // 使用新的GoogleGenAI SDK调用方式，强制返回JSON格式
     const response = await ai.models.generateContentStream({
       model: "gemini-2.5-pro-preview-05-06",
       contents: [{
@@ -144,6 +144,54 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
         topK: 32,
         topP: 1,
         maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            elements: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  x: { type: Type.NUMBER },
+                  y: { type: Type.NUMBER },
+                  width: { type: Type.NUMBER },
+                  height: { type: Type.NUMBER },
+                  text: { type: Type.STRING },
+                  color: { type: Type.STRING },
+                  backgroundColor: { type: Type.STRING },
+                  borderColor: { type: Type.STRING },
+                  borderWidth: { type: Type.NUMBER },
+                  fontSize: { type: Type.NUMBER },
+                  fontWeight: { type: Type.STRING },
+                  visible: { type: Type.BOOLEAN },
+                  rotation: { type: Type.NUMBER },
+                  zIndex: { type: Type.NUMBER }
+                }
+              }
+            },
+            connections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  fromElementId: { type: Type.STRING },
+                  toElementId: { type: Type.STRING },
+                  lineType: { type: Type.STRING },
+                  lineStyle: { type: Type.STRING },
+                  arrowType: { type: Type.STRING },
+                  color: { type: Type.STRING },
+                  width: { type: Type.NUMBER },
+                  visible: { type: Type.BOOLEAN }
+                }
+              }
+            },
+            description: { type: Type.STRING }
+          }
+        }
       }
     });
     
@@ -159,61 +207,11 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
     console.log('Response length:', text.length);
     console.log('Response preview:', text.substring(0, 200) + '...');
     
-    // 解析JSON响应
+    // 解析JSON响应（由于使用了responseSchema，应该直接是有效的JSON）
     try {
-      // 清理响应文本，移除可能的markdown格式和其他干扰内容
-      let cleanText = text.trim();
-      
-      // 移除markdown代码块标记
-      if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-      } else if (cleanText.startsWith('```')) {
-        cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-      }
-      
-      // 查找JSON对象的开始和结束位置
-      const jsonStart = cleanText.indexOf('{');
-      const jsonEnd = cleanText.lastIndexOf('}');
-      
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
-      }
-      
-      // 移除可能的前缀文本（如冒号开头的内容）
-      if (cleanText.startsWith(':')) {
-        const firstBrace = cleanText.indexOf('{');
-        if (firstBrace !== -1) {
-          cleanText = cleanText.substring(firstBrace);
-        }
-      }
-      
-      console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
-      
-      // 尝试修复常见的JSON格式问题
-      cleanText = cleanText
-        .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
-        .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
-        .replace(/(["'])(\w+)(["']):/g, '"$2":')  // 统一属性名引号
-        .replace(/:\s*(["'])(.*?)(["'])([,}\]])/g, ': "$2"$4')  // 统一字符串值引号
-        .replace(/"(\d+)"/g, '$1');  // 移除数字值的引号
-      
-      // 验证JSON格式的完整性
-      const openBraces = (cleanText.match(/{/g) || []).length;
-      const closeBraces = (cleanText.match(/}/g) || []).length;
-      const openBrackets = (cleanText.match(/\[/g) || []).length;
-      const closeBrackets = (cleanText.match(/]/g) || []).length;
-      
-      // 如果括号不匹配，尝试修复
-      if (openBraces > closeBraces) {
-        cleanText += '}'.repeat(openBraces - closeBraces);
-      }
-      if (openBrackets > closeBrackets) {
-        cleanText += ']'.repeat(openBrackets - closeBrackets);
-      }
-      
-      console.log('Final cleaned text for parsing:', cleanText.substring(0, 300) + '...');
-      
-      const aiResponse: AIResponse = JSON.parse(cleanText);
+      console.log('Parsing AI response as JSON...');
+      // 解析响应 - responseSchema 确保返回有效的 JSON
+      const aiResponse: AIResponse = JSON.parse(text);
       
       // 验证和修正响应数据
       if (!aiResponse.elements || !Array.isArray(aiResponse.elements)) {
@@ -387,6 +385,50 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
         topK: 32,
         topP: 1,
         maxOutputTokens: 4096,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            elements: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  type: { type: Type.STRING },
+                  x: { type: Type.NUMBER },
+                  y: { type: Type.NUMBER },
+                  width: { type: Type.NUMBER },
+                  height: { type: Type.NUMBER },
+                  text: { type: Type.STRING },
+                  color: { type: Type.STRING },
+                  backgroundColor: { type: Type.STRING },
+                  borderColor: { type: Type.STRING },
+                  borderWidth: { type: Type.NUMBER },
+                  fontSize: { type: Type.NUMBER },
+                  fontWeight: { type: Type.STRING },
+                  visible: { type: Type.BOOLEAN },
+                  rotation: { type: Type.NUMBER },
+                  zIndex: { type: Type.NUMBER }
+                }
+              }
+            },
+            connections: {
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  id: { type: Type.STRING },
+                  fromElementId: { type: Type.STRING },
+                  toElementId: { type: Type.STRING },
+                  color: { type: Type.STRING },
+                  width: { type: Type.NUMBER }
+                }
+              }
+            },
+            description: { type: Type.STRING }
+          }
+        }
       }
     });
     
@@ -398,59 +440,9 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
       }
     }
     
-    // 解析响应
-    let cleanText = text.trim();
+    // 解析响应 - responseSchema 确保返回有效的 JSON
     
-    // 移除markdown代码块标记
-    if (cleanText.startsWith('```json')) {
-      cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
-    } else if (cleanText.startsWith('```')) {
-      cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
-    }
-    
-    // 查找JSON对象的开始和结束位置
-    const jsonStart = cleanText.indexOf('{');
-    const jsonEnd = cleanText.lastIndexOf('}');
-    
-    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-      cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
-    }
-    
-    // 移除可能的前缀文本（如冒号开头的内容）
-    if (cleanText.startsWith(':')) {
-      const firstBrace = cleanText.indexOf('{');
-      if (firstBrace !== -1) {
-        cleanText = cleanText.substring(firstBrace);
-      }
-    }
-    
-    console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
-     
-     // 尝试修复常见的JSON格式问题
-     cleanText = cleanText
-       .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
-       .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
-       .replace(/(["'])(\w+)(["']):/g, '"$2":')  // 统一属性名引号
-       .replace(/:\s*(["'])(.*?)(["'])([,}\]])/g, ': "$2"$4')  // 统一字符串值引号
-       .replace(/"(\d+)"/g, '$1');  // 移除数字值的引号
-     
-     // 验证JSON格式的完整性
-     const openBraces = (cleanText.match(/{/g) || []).length;
-     const closeBraces = (cleanText.match(/}/g) || []).length;
-     const openBrackets = (cleanText.match(/\[/g) || []).length;
-     const closeBrackets = (cleanText.match(/]/g) || []).length;
-     
-     // 如果括号不匹配，尝试修复
-     if (openBraces > closeBraces) {
-       cleanText += '}'.repeat(openBraces - closeBraces);
-     }
-     if (openBrackets > closeBrackets) {
-       cleanText += ']'.repeat(openBrackets - closeBrackets);
-     }
-     
-     console.log('Final cleaned text for parsing:', cleanText.substring(0, 300) + '...');
-     
-     const aiResponse: AIResponse = JSON.parse(cleanText);
+    const aiResponse: AIResponse = JSON.parse(text);
     
     // 验证和修正数据（与图像分析相同的处理逻辑）
     // ... 这里可以复用上面的验证逻辑
