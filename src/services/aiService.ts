@@ -139,7 +139,7 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
           }
         ]
       }],
-      generationConfig: {
+      config: {
         temperature: 0.4,
         topK: 32,
         topP: 1,
@@ -228,7 +228,7 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
       console.log('Raw response:', text);
       
       // 抛出解析错误，不返回示例数据
-      throw new Error(`AI响应解析失败: ${parseError.message}. 原始响应: ${text.substring(0, 500)}...`);
+      throw new Error(`AI响应解析失败: ${(parseError as Error).message}. 原始响应: ${text.substring(0, 500)}...`);
     }
     
   } catch (error) {
@@ -333,30 +333,26 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
 返回JSON格式，不要包含其他文本。
 `;
     
-    const response = await fetch(`${endpoint}?key=${token}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [{ text: prompt }]
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 4096,
-        }
-      })
+    const response = await ai.models.generateContentStream({
+      model: "gemini-2.5-pro-preview-05-06",
+      contents: [{
+        parts: [{ text: prompt }]
+      }],
+      config: {
+        temperature: 0.4,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 4096,
+      }
     });
     
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`);
+    // 收集流式响应
+    let text = '';
+    for await (const chunk of response) {
+      if (chunk.text) {
+        text += chunk.text;
+      }
     }
-    
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     // 解析响应
     let cleanText = text.trim();

@@ -285,7 +285,7 @@ ${JSON.stringify(currentState.connections, null, 2)}
         contents: [{
           parts: [{ text: prompt }]
         }],
-        generationConfig: {
+        config: {
           temperature: 0.4,
           topK: 32,
           topP: 1,

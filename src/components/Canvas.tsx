@@ -18,7 +18,6 @@ const Canvas: React.FC<CanvasProps> = ({ className = '' }) => {
     updateElement,
     canvasState,
     setCanvasState,
-    uploadedImage,
     isProcessing
   } = useDiagramContext();
   
