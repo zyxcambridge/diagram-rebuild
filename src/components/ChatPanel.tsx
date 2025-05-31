@@ -234,11 +234,137 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
       content: userMessage
     });
     
-    // TODO: 这里可以添加AI响应逻辑
-    addMessage({
-      type: 'assistant',
-      content: '收到您的消息，AI功能正在开发中...'
-    });
+    try {
+      setIsProcessing(true);
+      
+      // 添加AI思考中的消息
+      addMessage({
+        type: 'assistant',
+        content: '正在分析您的需求并生成相应的图表修改...'
+      });
+      
+      // 构建包含当前图表状态的提示词
+      const currentState = {
+        elements: elements,
+        connections: connections,
+        userRequest: userMessage
+      };
+      
+      const prompt = `
+用户当前有一个图表，包含以下元素：
+${JSON.stringify(currentState.elements, null, 2)}
+
+连接线：
+${JSON.stringify(currentState.connections, null, 2)}
+
+用户的修改要求："${userMessage}"
+
+请根据用户的要求，对图表进行相应的修改。可能的操作包括：
+1. 添加新元素
+2. 修改现有元素的属性（位置、大小、文本、颜色等）
+3. 删除元素
+4. 添加或修改连接线
+5. 重新布局
+
+请返回修改后的完整图表数据，格式与之前相同的JSON结构。
+
+如果用户的要求不够明确，请提供建议或询问更多细节。
+
+请确保返回的是有效的JSON格式，不要包含任何其他文本。
+`;
+      
+      // 调用AI服务
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent?key=${atob('QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn')}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: prompt }]
+          }],
+          generationConfig: {
+            temperature: 0.4,
+            topK: 32,
+            topP: 1,
+            maxOutputTokens: 4096,
+          }
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API请求失败: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      
+      // 尝试解析AI响应
+      try {
+        let cleanText = aiText.trim();
+        if (cleanText.startsWith('```json')) {
+          cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+        } else if (cleanText.startsWith('```')) {
+          cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+        }
+        
+        const aiResponse = JSON.parse(cleanText);
+        
+        // 如果AI返回了新的图表数据，更新画布
+        if (aiResponse.elements && Array.isArray(aiResponse.elements)) {
+          const parsedElements = parseElementsFromAIResponse(aiResponse);
+          setElements(parsedElements);
+          
+          if (aiResponse.connections && Array.isArray(aiResponse.connections)) {
+            setConnections(aiResponse.connections);
+          }
+          
+          // 保存到历史记录
+          saveToHistory(`AI修改: ${userMessage}`);
+          
+          addMessage({
+            type: 'assistant',
+            content: `已根据您的要求完成图表修改！\n\n修改内容：\n- 更新了 ${parsedElements.length} 个元素\n- ${aiResponse.connections?.length || 0} 条连接线\n\n${aiResponse.description || ''}\n\n您可以继续提出其他修改建议。`
+          });
+        } else {
+          // 如果AI没有返回图表数据，可能是需要更多信息或建议
+          addMessage({
+            type: 'assistant',
+            content: aiText || '我理解了您的需求，但需要更多具体信息才能进行修改。请告诉我您希望如何具体调整图表？'
+          });
+        }
+        
+      } catch (parseError) {
+        console.error('解析AI响应失败:', parseError);
+        
+        // 如果无法解析为JSON，直接显示AI的文本响应
+        addMessage({
+          type: 'assistant',
+          content: aiText || '抱歉，我无法理解您的具体需求。请尝试更详细地描述您希望如何修改图表，比如：\n\n- "添加一个蓝色的矩形，文字是XXX"\n- "把第一个元素移动到右边"\n- "改变所有文字的颜色为红色"\n- "添加从A到B的连接线"'
+        });
+      }
+      
+    } catch (error) {
+      console.error('AI对话失败:', error);
+      
+      let errorMessage = '抱歉，AI服务暂时不可用。';
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          errorMessage = 'API密钥配置错误，请检查设置。';
+        } else if (error.message.includes('quota')) {
+          errorMessage = 'API配额已用完，请稍后再试。';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = '网络连接错误，请检查网络后重试。';
+        }
+      }
+      
+      addMessage({
+        type: 'assistant',
+        content: errorMessage + '\n\n您仍然可以手动编辑图表元素：\n- 拖拽元素调整位置\n- 双击元素编辑文本\n- 拖拽四角调整大小\n- 右键添加连接点'
+      });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   // 处理导出功能
