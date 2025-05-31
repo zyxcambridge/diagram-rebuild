@@ -210,8 +210,31 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
     // 解析JSON响应（由于使用了responseSchema，应该直接是有效的JSON）
     try {
       console.log('Parsing AI response as JSON...');
-      // 解析响应 - responseSchema 确保返回有效的 JSON
-      const aiResponse: AIResponse = JSON.parse(text);
+      // 解析响应 - 即使有 responseSchema，仍需要清理可能的格式问题
+      let cleanText = text.trim();
+      
+      // 移除可能的 markdown 代码块标记
+      cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      
+      // 查找 JSON 对象的开始和结束位置
+      const jsonStart = cleanText.indexOf('{');
+      const jsonEnd = cleanText.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // 移除可能的前缀文本
+      const prefixes = ['Response:', 'JSON:', 'Result:', 'Output:', '结果:', '响应:'];
+      for (const prefix of prefixes) {
+        if (cleanText.startsWith(prefix)) {
+          cleanText = cleanText.substring(prefix.length).trim();
+          break;
+        }
+      }
+      
+      const aiResponse: AIResponse = JSON.parse(cleanText);
       
       // 验证和修正响应数据
       if (!aiResponse.elements || !Array.isArray(aiResponse.elements)) {
@@ -440,16 +463,45 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
       }
     }
     
-    // 解析响应 - responseSchema 确保返回有效的 JSON
-    
-    const aiResponse: AIResponse = JSON.parse(text);
-    
-    // 验证和修正数据（与图像分析相同的处理逻辑）
-    // ... 这里可以复用上面的验证逻辑
-    
-    return aiResponse;
-    
-  } catch (error) {
+    // 解析响应 - 即使有 responseSchema，仍需要清理可能的格式问题
+    try {
+      let cleanText = text.trim();
+      
+      // 移除可能的 markdown 代码块标记
+      cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
+      cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
+      
+      // 查找 JSON 对象的开始和结束位置
+      const jsonStart = cleanText.indexOf('{');
+      const jsonEnd = cleanText.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // 移除可能的前缀文本
+      const prefixes = ['Response:', 'JSON:', 'Result:', 'Output:', '结果:', '响应:'];
+      for (const prefix of prefixes) {
+        if (cleanText.startsWith(prefix)) {
+          cleanText = cleanText.substring(prefix.length).trim();
+          break;
+        }
+      }
+      
+      const aiResponse: AIResponse = JSON.parse(cleanText);
+      
+      // 验证和修正数据（与图像分析相同的处理逻辑）
+      // ... 这里可以复用上面的验证逻辑
+      
+      return aiResponse;
+    } catch (parseError) {
+       console.error('JSON parsing failed:', parseError);
+       console.error('Original text:', text);
+       const errorMessage = parseError instanceof Error ? parseError.message : String(parseError);
+       throw new Error(`AI响应解析失败: ${errorMessage}. 原始响应: ${text.substring(0, 200)}...`);
+     }
+     
+   } catch (error) {
     console.error('Error generating diagram from text:', error);
     return createFallbackResponse();
   }
