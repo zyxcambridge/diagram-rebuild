@@ -63,7 +63,12 @@ const App: React.FC = () => {
 
           {/* 中间工具栏 */}
           <div style={{ flex: 1, margin: '0 20px' }}>
-            <Toolbar />
+            <Toolbar 
+              onExport={() => {
+                // 处理导出
+                console.log('Export diagram');
+              }}
+            />
           </div>
 
           {/* 右侧面板控制 */}

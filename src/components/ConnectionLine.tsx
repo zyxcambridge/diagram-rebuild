@@ -21,7 +21,7 @@ const ConnectionLine: React.FC<ConnectionLineProps> = ({
   }
 
   // 计算连接点
-  const getConnectionPoint = (element: DiagramElement, isFrom: boolean, otherElement: DiagramElement) => {
+  const getConnectionPoint = (element: DiagramElement, _isFrom: boolean, otherElement: DiagramElement) => {
     const centerX = element.x + element.width / 2;
     const centerY = element.y + element.height / 2;
     const otherCenterX = otherElement.x + otherElement.width / 2;
@@ -223,8 +223,8 @@ const ConnectionLine: React.FC<ConnectionLineProps> = ({
       strokeWidth,
       strokeDasharray,
       fill: 'none',
-      strokeLinecap: 'round',
-      strokeLinejoin: 'round'
+      strokeLinecap: 'round' as const,
+      strokeLinejoin: 'round' as const
     };
   };
 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDiagramContext } from '../context/DiagramContext';
-import { Image, Upload, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Image, ZoomIn, ZoomOut } from 'lucide-react';
 
 const ImagePanel: React.FC = () => {
   const { uploadedImage } = useDiagramContext();

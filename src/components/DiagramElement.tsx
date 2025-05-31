@@ -18,8 +18,6 @@ const DiagramElement: React.FC<DiagramElementProps> = ({
 }) => {
   const { 
     activeTool, 
-    elements, 
-    connections, 
     addConnection,
     setActiveTool,
     selectedElement,
@@ -162,7 +160,7 @@ const DiagramElement: React.FC<DiagramElementProps> = ({
   };
 
   // 处理连接点点击
-  const handleConnectionPointClick = (e: React.MouseEvent, position: string) => {
+  const handleConnectionPointClick = (e: React.MouseEvent, _position: string) => {
     e.preventDefault();
     e.stopPropagation();
     

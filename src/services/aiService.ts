@@ -1,4 +1,4 @@
-import { DiagramElement, AIResponse } from '../types';
+import { AIResponse } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
 // 使用新的API配置
@@ -156,26 +156,30 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
       
       // 处理连接线
       if (aiResponse.connections && Array.isArray(aiResponse.connections)) {
-        aiResponse.connections = aiResponse.connections.map(conn => ({
+        const processedConnections = aiResponse.connections.map(conn => ({
           id: conn.id || uuidv4(),
           fromElementId: conn.fromElementId,
           toElementId: conn.toElementId,
-          type: conn.type || 'straight',
-          style: conn.style || 'solid',
-          arrowType: conn.arrowType || 'arrow',
+          lineType: conn.lineType || 'straight',
+          lineStyle: conn.lineStyle || 'solid',
+          arrowType: (conn.arrowType as any) || 'single',
           color: conn.color || '#333333',
           width: conn.width || 2,
           visible: conn.visible !== false
         }));
+        
+        console.log('Successfully parsed AI response');
+        console.log('Elements count:', aiResponse.elements.length);
+        console.log('Connections count:', processedConnections.length);
+        
+        return { ...aiResponse, connections: processedConnections };
       } else {
-        aiResponse.connections = [];
+        console.log('Successfully parsed AI response');
+        console.log('Elements count:', aiResponse.elements.length);
+        console.log('Connections count:', 0);
+        
+        return { ...aiResponse, connections: [] };
       }
-      
-      console.log('Successfully parsed AI response');
-      console.log('Elements count:', aiResponse.elements.length);
-      console.log('Connections count:', aiResponse.connections.length);
-      
-      return aiResponse;
       
     } catch (parseError) {
       console.error('Failed to parse AI response as JSON:', parseError);

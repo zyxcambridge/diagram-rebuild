@@ -1,7 +1,7 @@
 import React from 'react';
 import { useDiagramContext } from '../context/DiagramContext';
 import { DiagramElement } from '../types';
-import { Square, Circle, Type, ArrowRight, Image, Star, Triangle, Hexagon } from 'lucide-react';
+import { Square, Circle, Type, ArrowRight } from 'lucide-react';
 
 interface ElementLibraryProps {
   className?: string;
@@ -138,16 +138,18 @@ const ElementLibrary: React.FC<ElementLibraryProps> = ({ className = '' }) => {
   // 添加元素到画布
   const handleAddElement = (template: typeof elementTemplates[0]) => {
     // 计算画布中心位置
-    const centerX = (canvasState.viewportWidth / 2 - canvasState.offset.x) / canvasState.scale;
-    const centerY = (canvasState.viewportHeight / 2 - canvasState.offset.y) / canvasState.scale;
+    const centerX = (800 / 2 - canvasState.offsetX) / canvasState.scale;
+    const centerY = (600 / 2 - canvasState.offsetY) / canvasState.scale;
 
-    const newElement: Omit<DiagramElement, 'id'> = {
+    const newElement: DiagramElement = {
+      id: `element-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       type: template.type,
       x: centerX - template.defaultProps.width / 2,
       y: centerY - template.defaultProps.height / 2,
       ...template.defaultProps,
       visible: true,
-      rotation: 0
+      rotation: 0,
+      zIndex: 1
     };
 
     addElement(newElement);

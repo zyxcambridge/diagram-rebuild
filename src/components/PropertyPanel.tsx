@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDiagramContext } from '../context/DiagramContext';
-import { DiagramElement, Connection } from '../types';
-import { Palette, Type, Move, RotateCw, Eye, EyeOff, Trash2 } from 'lucide-react';
+import { Palette, Type, Move, Eye, EyeOff, Trash2 } from 'lucide-react';
 
 interface PropertyPanelProps {
   className?: string;
@@ -46,8 +45,8 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className = '' }) => {
       setLocalValues({
         color: currentConnection.color || '#333333',
         width: currentConnection.width || 2,
-        type: currentConnection.type || 'straight',
-        style: currentConnection.style || 'solid',
+        lineType: currentConnection.lineType || 'straight',
+        lineStyle: currentConnection.lineStyle || 'solid',
         arrowType: currentConnection.arrowType || 'arrow'
       });
     }
@@ -57,7 +56,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className = '' }) => {
   const handleElementUpdate = (property: string, value: any) => {
     if (!currentElement) return;
     
-    setLocalValues(prev => ({ ...prev, [property]: value }));
+    setLocalValues((prev: any) => ({ ...prev, [property]: value }));
     updateElement(currentElement.id, { [property]: value });
   };
 
@@ -65,7 +64,7 @@ const PropertyPanel: React.FC<PropertyPanelProps> = ({ className = '' }) => {
   const handleConnectionUpdate = (property: string, value: any) => {
     if (!currentConnection) return;
     
-    setLocalValues(prev => ({ ...prev, [property]: value }));
+    setLocalValues((prev: any) => ({ ...prev, [property]: value }));
     updateConnection(currentConnection.id, { [property]: value });
   };
 

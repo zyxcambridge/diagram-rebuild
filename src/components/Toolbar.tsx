@@ -9,7 +9,7 @@ import {
   Link, 
   Trash2, 
   Download, 
-  Upload, 
+ 
   RotateCcw, 
   RotateCw, 
   Grid, 
@@ -23,11 +23,10 @@ import { useDiagramContext } from '../context/DiagramContext';
 import { ToolbarAction } from '../types';
 
 interface ToolbarProps {
-  onImageUpload: (file: File) => void;
   onExport: () => void;
 }
 
-const Toolbar: React.FC<ToolbarProps> = ({ onImageUpload, onExport }) => {
+const Toolbar: React.FC<ToolbarProps> = ({ onExport }) => {
   const {
     activeTool,
     setActiveTool,
@@ -58,15 +57,7 @@ const Toolbar: React.FC<ToolbarProps> = ({ onImageUpload, onExport }) => {
     { id: 'delete', icon: <Trash2 size={18} />, label: '删除', shortcut: 'Del' }
   ];
 
-  // 处理文件上传
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      onImageUpload(file);
-    }
-    // 清空input值，允许重复上传同一文件
-    e.target.value = '';
-  };
+
 
   // 缩放控制
   const handleZoomIn = () => {

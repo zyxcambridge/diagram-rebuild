@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Download, Upload, FileImage } from 'lucide-react';
+import { Send, Download, Upload } from 'lucide-react';
 import { useDiagramContext } from '../context/DiagramContext';
-import { ChatMessage, DiagramElement, Connection } from '../types';
+import { ChatMessage, DiagramElement } from '../types';
 import { analyzeImageAndGenerateDiagram } from '../services/aiService';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,8 +15,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
     connections,
     setElements,
     setConnections,
-    addElement,
-    uploadedImage,
     setUploadedImage,
     isProcessing,
     setIsProcessing,
@@ -345,7 +343,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
     const adjustedY = y - bounds.y;
     
     // 绘制背景
-    ctx.fillStyle = backgroundColor;
+    ctx.fillStyle = backgroundColor || '#ffffff';
     
     switch (element.type) {
       case 'box':
@@ -362,9 +360,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
     }
     
     // 绘制边框
-    if (borderWidth > 0) {
-      ctx.strokeStyle = borderColor;
-      ctx.lineWidth = borderWidth;
+    if ((borderWidth || 0) > 0) {
+      ctx.strokeStyle = borderColor || '#cccccc';
+      ctx.lineWidth = borderWidth || 1;
       
       switch (element.type) {
         case 'box':
@@ -383,7 +381,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({ className = '' }) => {
     
     // 绘制文本
     if (text) {
-      ctx.fillStyle = color;
+      ctx.fillStyle = color || '#333333';
       ctx.font = '14px Arial';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
