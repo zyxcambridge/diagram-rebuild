@@ -1,4 +1,4 @@
-name: Deploy to GitHub Pages
+name: Build and Deploy
 
 on:
   push:
@@ -8,6 +8,12 @@ on:
 
   # 允许手动触发工作流
   workflow_dispatch:
+
+# 添加必要的权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
 
 jobs:
   build-and-deploy:
