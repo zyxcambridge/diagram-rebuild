@@ -1,10 +1,14 @@
 import { AIResponse } from '../types';
 import { v4 as uuidv4 } from 'uuid';
 
+import { GoogleGenAI } from "@google/genai";
+
 // 使用新的API配置
 const _token_b64 = "QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn";
 const token = atob(_token_b64);
-const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent";
+
+// 初始化GoogleGenAI实例
+const ai = new GoogleGenAI({ apiKey: token });
 
 // 将图片转换为base64格式
 const imageToBase64 = (file: File): Promise<string> => {
@@ -34,44 +38,53 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
     
     // 构建提示词
     const prompt = `
-基于所附图示内容，使用html 来以附件图来画图，能够完整复现原图所表达的信息结构与视觉布局，并提供以下增强功能：
+基于所附图示内容，使用HTML来完整复现原图所表达的信息结构与视觉布局，并提供以下增强功能：
+
+【重要】：生成的元素必须确保拖拽后不会消失，每个元素都要有稳定的DOM结构和正确的坐标定位。
 
 1. 结构分析与分解原则：
 
 为便于开发与管理，首先对整张图进行逻辑划分：
 	• 纵向划分：将整图划分为上、中、下三个水平区域；
 	• 横向划分：再将每个区域进一步细分为左、中、右三个垂直子区；
-	• 形成总计 9 个区域的"九宫格"结构，每个区域内部逐个绘制原图中的元素节点。
+	• 形成总计9个区域的"九宫格"结构，每个区域内部逐个绘制原图中的元素节点。
 
 2. 元素级别的绘制要求：
-	• 每个元素节点需以 HTML DOM 元素形式表示（如 <div>、<svg> 等）；
+	• 每个元素节点需以HTML DOM元素形式表示（如<div>、<svg>等）；
 	• 每个节点都应保留原图的相对位置、大小、文字信息、颜色与风格；
-	• 原图中的"图 x-y"编号一律删除，保留正文内容与结构逻辑；
-	• 所有文本翻译为中文，以符合本地化出版需求。
+	• 原图中的"图x-y"编号一律删除，保留正文内容与结构逻辑；
+	• 所有文本翻译为中文，以符合本地化出版需求；
+	• 每个元素必须有明确的边框线框，便于拖拽操作。
 
-3. 交互功能增强：
-现在有个问题，拖动了后，元素消失了，我要的是 拖动后元素不消失；
-每个图中元素均应具备以下交互能力，提升编辑与演示的灵活性：
-。所有连接线可以显示或者影藏，每一个元素外部增加 线框；每个元素都能够拖动位置
-	• ✅ 可拖拽：用户可任意拖动节点进行布局调整，但是不能导致拖拽后元素消失；
-	• ✅ 点击隐藏/显示：点击任一元素，可切换其显示与隐藏状态，但是不能导致拖拽后元素消失；
+3. 交互功能增强（关键要求）：
+
+【核心问题解决】：拖动后元素绝对不能消失！每个元素必须：
+	• 具备稳定的DOM结构和唯一ID
+	• 拖拽时保持元素的完整性和可见性
+	• 拖拽结束后元素必须保持在新位置并继续可见
+
+每个图中元素均应具备以下交互能力：
+	• ✅ 可拖拽：用户可任意拖动节点进行布局调整，拖拽后元素必须保持可见且功能正常；
+	• ✅ 点击隐藏/显示：点击任一元素，可切换其显示与隐藏状态；
 	• ✅ 缩放功能：用户可对任意元素进行局部放大或缩小；
-	• ✅ 连接线：右键在一个元素的边框上时，可以增加一个链接线，鼠标指向另外一个元素时，产生一条连接线
+	• ✅ 连接线管理：所有连接线可以显示或隐藏，每个元素外部增加线框；
+	• ✅ 连接线创建：右键在元素边框上时，可以增加链接线，鼠标指向另一个元素时产生连接线。
 
 4. 构建顺序建议：
 
 为确保构建过程的清晰与高效，建议遵循以下顺序进行：
-	1. 优先绘制图中所有独立元素节点；
-	2. 为每个元素添加基础交互功能；
+	1. 优先绘制图中所有独立元素节点，确保每个元素有稳定的结构；
+	2. 为每个元素添加基础交互功能，特别是拖拽功能的稳定性；
 	3. 识别元素之间的逻辑/信息连接关系，绘制连接线；
 	4. 整合为完整图形系统，保证布局一致性与交互完整性；
 	5. 最终调优：语言翻译、样式统一、响应式支持、细节微调。
 
-4.4 出版图表规范与注意事项
-1. 图示中的字号要用小五号黑体。
-2. 线条的衔接要准确，线条的粗细和箭头的形状要美观。
-3. 黑白印刷的图书，绘制图表切忌用各色底纹，印刷后影响图片质量。
-	文本的字体、字号、颜色、字型和位置要恰到好处
+5. 出版图表规范与注意事项：
+	1. 图示中的字号要用小五号黑体（对应fontSize: 12-14）；
+	2. 线条的衔接要准确，线条的粗细和箭头的形状要美观；
+	3. 黑白印刷的图书，绘制图表切忌用各色底纹，印刷后影响图片质量；
+	4. 文本的字体、字号、颜色、字型和位置要恰到好处；
+	5. 每个元素都要有清晰的边框，便于用户识别和操作。
 
 请以JSON格式返回结果，包含以下结构：
 {
@@ -110,41 +123,37 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
 请确保返回的是有效的JSON格式，不要包含任何其他文本。
 `;
     
-    console.log('Sending request to Gemini API...');
+    console.log('Sending request to Gemini API using new SDK...');
     
-    // 使用新的API调用方式
-    const response = await fetch(`${endpoint}?key=${token}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: prompt },
-            {
-              inline_data: {
-                mime_type: imageFile.type,
-                data: imageBase64
-              }
+    // 使用新的GoogleGenAI SDK调用方式
+    const response = await ai.models.generateContentStream({
+      model: "gemini-2.5-pro-preview-05-06",
+      contents: [{
+        parts: [
+          { text: prompt },
+          {
+            inlineData: {
+              mimeType: imageFile.type,
+              data: imageBase64
             }
-          ]
-        }],
-        generationConfig: {
-          temperature: 0.4,
-          topK: 32,
-          topP: 1,
-          maxOutputTokens: 4096,
-        }
-      })
+          }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0.4,
+        topK: 32,
+        topP: 1,
+        maxOutputTokens: 4096,
+      }
     });
     
-    if (!response.ok) {
-      throw new Error(`API请求失败: ${response.status}`);
+    // 收集流式响应
+    let text = '';
+    for await (const chunk of response) {
+      if (chunk.text) {
+        text += chunk.text;
+      }
     }
-    
-    const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
     
     console.log('Received response from Gemini API');
     console.log('Response length:', text.length);
@@ -218,8 +227,8 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
       console.error('Failed to parse AI response as JSON:', parseError);
       console.log('Raw response:', text);
       
-      // 返回默认的测试元素
-      return createFallbackResponse();
+      // 抛出解析错误，不返回示例数据
+      throw new Error(`AI响应解析失败: ${parseError.message}. 原始响应: ${text.substring(0, 500)}...`);
     }
     
   } catch (error) {
@@ -236,9 +245,8 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
       }
     }
     
-    // 返回默认的测试元素作为后备方案
-    console.log('Returning fallback response due to error');
-    return createFallbackResponse();
+    // 抛出错误，不返回示例数据
+    throw error;
   }
 };
 

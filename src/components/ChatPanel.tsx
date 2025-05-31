@@ -4,6 +4,12 @@ import { useDiagramContext } from '../context/DiagramContext';
 import { ChatMessage, DiagramElement } from '../types';
 import { analyzeImageAndGenerateDiagram } from '../services/aiService';
 import { v4 as uuidv4 } from 'uuid';
+import { GoogleGenAI } from '@google/genai';
+
+// 初始化GoogleGenAI实例
+const _token_b64 = "QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn";
+const token = atob(_token_b64);
+const ai = new GoogleGenAI({ apiKey: token });
 
 interface ChatPanelProps {
   className?: string;
@@ -273,31 +279,27 @@ ${JSON.stringify(currentState.connections, null, 2)}
 请确保返回的是有效的JSON格式，不要包含任何其他文本。
 `;
       
-      // 调用AI服务
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent?key=${atob('QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn')}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          contents: [{
-            parts: [{ text: prompt }]
-          }],
-          generationConfig: {
-            temperature: 0.4,
-            topK: 32,
-            topP: 1,
-            maxOutputTokens: 4096,
-          }
-        })
+      // 调用AI服务使用新的SDK
+      const response = await ai.models.generateContentStream({
+        model: "gemini-2.5-pro-preview-05-06",
+        contents: [{
+          parts: [{ text: prompt }]
+        }],
+        generationConfig: {
+          temperature: 0.4,
+          topK: 32,
+          topP: 1,
+          maxOutputTokens: 4096,
+        }
       });
       
-      if (!response.ok) {
-        throw new Error(`API请求失败: ${response.status}`);
+      // 收集流式响应
+      let aiText = '';
+      for await (const chunk of response) {
+        if (chunk.text) {
+          aiText += chunk.text;
+        }
       }
-      
-      const data = await response.json();
-      const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
       
       // 尝试解析AI响应
       try {

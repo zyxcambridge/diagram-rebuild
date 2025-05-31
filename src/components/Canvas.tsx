@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useDiagramContext } from '../context/DiagramContext';
 import DiagramElement from './DiagramElement';
 import ConnectionLine from './ConnectionLine';
@@ -125,36 +125,6 @@ const Canvas: React.FC<CanvasProps> = ({ className = '' }) => {
     );
   };
 
-  // 渲染背景图片
-  const renderBackgroundImage = () => {
-    if (!uploadedImage) return null;
-    
-    return (
-      <div
-        style={{
-          position: 'absolute',
-          top: canvasState.offsetY,
-          left: canvasState.offsetX,
-          transform: `scale(${canvasState.scale})`,
-          transformOrigin: 'top left',
-          opacity: 0.3,
-          zIndex: 1,
-          pointerEvents: 'none'
-        }}
-      >
-        <img
-          src={uploadedImage}
-          alt="Background"
-          style={{
-            maxWidth: '800px',
-            maxHeight: '600px',
-            objectFit: 'contain'
-          }}
-        />
-      </div>
-    );
-  };
-
   // 渲染处理中的状态
   const renderProcessingOverlay = () => {
     if (!isProcessing) return null;
@@ -171,13 +141,36 @@ const Canvas: React.FC<CanvasProps> = ({ className = '' }) => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
-          flexDirection: 'column',
-          gap: '16px'
+          zIndex: 1000
         }}
       >
-        <div className="spinner" style={{ width: '40px', height: '40px' }} />
-        <div style={{ fontSize: '16px', color: '#666' }}>正在分析图像并生成图表...</div>
+        <div
+          style={{
+            padding: '20px',
+            backgroundColor: '#ffffff',
+            borderRadius: '8px',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+            textAlign: 'center'
+          }}
+        >
+          <div
+            style={{
+              width: '40px',
+              height: '40px',
+              border: '4px solid #f3f3f3',
+              borderTop: '4px solid #007bff',
+              borderRadius: '50%',
+              animation: 'spin 1s linear infinite',
+              margin: '0 auto 16px'
+            }}
+          />
+          <div style={{ fontSize: '16px', fontWeight: '500', color: '#333' }}>
+            AI正在分析图片...
+          </div>
+          <div style={{ fontSize: '14px', color: '#666', marginTop: '8px' }}>
+            请稍候，这可能需要几秒钟
+          </div>
+        </div>
       </div>
     );
   };
@@ -191,18 +184,15 @@ const Canvas: React.FC<CanvasProps> = ({ className = '' }) => {
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: '#fafafa',
+        backgroundColor: '#ffffff',
         cursor: isPanning ? 'grabbing' : 'default'
       }}
       onClick={handleCanvasClick}
-      onMouseDown={handleMouseDown}
       onWheel={handleWheel}
+      onMouseDown={handleMouseDown}
     >
       {/* 网格 */}
       {renderGrid()}
-      
-      {/* 背景图片 */}
-      {renderBackgroundImage()}
       
       {/* 元素容器 */}
       <div
