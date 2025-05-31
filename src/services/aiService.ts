@@ -161,13 +161,33 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
     
     // 解析JSON响应
     try {
-      // 清理响应文本，移除可能的markdown格式
+      // 清理响应文本，移除可能的markdown格式和其他干扰内容
       let cleanText = text.trim();
+      
+      // 移除markdown代码块标记
       if (cleanText.startsWith('```json')) {
         cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
       } else if (cleanText.startsWith('```')) {
         cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
       }
+      
+      // 查找JSON对象的开始和结束位置
+      const jsonStart = cleanText.indexOf('{');
+      const jsonEnd = cleanText.lastIndexOf('}');
+      
+      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+        cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
+      }
+      
+      // 移除可能的前缀文本（如冒号开头的内容）
+      if (cleanText.startsWith(':')) {
+        const firstBrace = cleanText.indexOf('{');
+        if (firstBrace !== -1) {
+          cleanText = cleanText.substring(firstBrace);
+        }
+      }
+      
+      console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
       
       const aiResponse: AIResponse = JSON.parse(cleanText);
       
@@ -356,11 +376,31 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
     
     // 解析响应
     let cleanText = text.trim();
+    
+    // 移除markdown代码块标记
     if (cleanText.startsWith('```json')) {
       cleanText = cleanText.replace(/^```json\s*/, '').replace(/\s*```$/, '');
     } else if (cleanText.startsWith('```')) {
       cleanText = cleanText.replace(/^```\s*/, '').replace(/\s*```$/, '');
     }
+    
+    // 查找JSON对象的开始和结束位置
+    const jsonStart = cleanText.indexOf('{');
+    const jsonEnd = cleanText.lastIndexOf('}');
+    
+    if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
+      cleanText = cleanText.substring(jsonStart, jsonEnd + 1);
+    }
+    
+    // 移除可能的前缀文本（如冒号开头的内容）
+    if (cleanText.startsWith(':')) {
+      const firstBrace = cleanText.indexOf('{');
+      if (firstBrace !== -1) {
+        cleanText = cleanText.substring(firstBrace);
+      }
+    }
+    
+    console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
     
     const aiResponse: AIResponse = JSON.parse(cleanText);
     
