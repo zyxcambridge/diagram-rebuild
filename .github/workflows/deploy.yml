@@ -11,9 +11,14 @@ on:
 
 # 添加必要的权限
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
+
+# 添加并发控制
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-deploy:
