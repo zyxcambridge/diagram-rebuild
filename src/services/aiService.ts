@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 // 使用新的API配置
 const _token_b64 = "QUl6YVN5QzV6Q2dYWHdDTmJVbWJRUl9waFJ0bWNpUlNCckNjRHFn";
 const token = atob(_token_b64);
-const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent";
+const endpoint = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro-preview-05-06:generateContent";
 
 // 将图片转换为base64格式
 const imageToBase64 = (file: File): Promise<string> => {
