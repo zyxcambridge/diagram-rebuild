@@ -189,6 +189,30 @@ export const analyzeImageAndGenerateDiagram = async (imageFile: File): Promise<A
       
       console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
       
+      // 尝试修复常见的JSON格式问题
+      cleanText = cleanText
+        .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
+        .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
+        .replace(/(["'])(\w+)(["']):/g, '"$2":')  // 统一属性名引号
+        .replace(/:\s*(["'])(.*?)(["'])([,}\]])/g, ': "$2"$4')  // 统一字符串值引号
+        .replace(/"(\d+)"/g, '$1');  // 移除数字值的引号
+      
+      // 验证JSON格式的完整性
+      const openBraces = (cleanText.match(/{/g) || []).length;
+      const closeBraces = (cleanText.match(/}/g) || []).length;
+      const openBrackets = (cleanText.match(/\[/g) || []).length;
+      const closeBrackets = (cleanText.match(/]/g) || []).length;
+      
+      // 如果括号不匹配，尝试修复
+      if (openBraces > closeBraces) {
+        cleanText += '}'.repeat(openBraces - closeBraces);
+      }
+      if (openBrackets > closeBrackets) {
+        cleanText += ']'.repeat(openBrackets - closeBrackets);
+      }
+      
+      console.log('Final cleaned text for parsing:', cleanText.substring(0, 300) + '...');
+      
       const aiResponse: AIResponse = JSON.parse(cleanText);
       
       // 验证和修正响应数据
@@ -401,8 +425,32 @@ export const generateDiagramFromText = async (description: string): Promise<AIRe
     }
     
     console.log('Cleaned text for parsing:', cleanText.substring(0, 200) + '...');
-    
-    const aiResponse: AIResponse = JSON.parse(cleanText);
+     
+     // 尝试修复常见的JSON格式问题
+     cleanText = cleanText
+       .replace(/,\s*}/g, '}')  // 移除对象末尾多余的逗号
+       .replace(/,\s*]/g, ']')  // 移除数组末尾多余的逗号
+       .replace(/(["'])(\w+)(["']):/g, '"$2":')  // 统一属性名引号
+       .replace(/:\s*(["'])(.*?)(["'])([,}\]])/g, ': "$2"$4')  // 统一字符串值引号
+       .replace(/"(\d+)"/g, '$1');  // 移除数字值的引号
+     
+     // 验证JSON格式的完整性
+     const openBraces = (cleanText.match(/{/g) || []).length;
+     const closeBraces = (cleanText.match(/}/g) || []).length;
+     const openBrackets = (cleanText.match(/\[/g) || []).length;
+     const closeBrackets = (cleanText.match(/]/g) || []).length;
+     
+     // 如果括号不匹配，尝试修复
+     if (openBraces > closeBraces) {
+       cleanText += '}'.repeat(openBraces - closeBraces);
+     }
+     if (openBrackets > closeBrackets) {
+       cleanText += ']'.repeat(openBrackets - closeBrackets);
+     }
+     
+     console.log('Final cleaned text for parsing:', cleanText.substring(0, 300) + '...');
+     
+     const aiResponse: AIResponse = JSON.parse(cleanText);
     
     // 验证和修正数据（与图像分析相同的处理逻辑）
     // ... 这里可以复用上面的验证逻辑
